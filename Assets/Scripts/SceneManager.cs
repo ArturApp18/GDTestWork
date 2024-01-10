@@ -1,20 +1,21 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
 
 public class SceneManager : MonoBehaviour
 {
     public static SceneManager Instance;
 
     public Player Player;
-    public List<Enemie> Enemies;
+    public List<Enemy> Enemies;
     public GameObject Lose;
     public GameObject Win;
 
     private int currWave = 0;
     [SerializeField] private LevelConfig Config;
 
+    public Action<float> OnWaveChanged;
     private void Awake()
     {
         Instance = this;
@@ -25,23 +26,30 @@ public class SceneManager : MonoBehaviour
         SpawnWave();
     }
 
-    public void AddEnemie(Enemie enemie)
+    public void AddEnemie(Enemy enemy)
     {
-        Enemies.Add(enemie);
+        Enemies.Add(enemy);
+        enemy.DeathHappened += HealPlayer;
     }
 
-    public void RemoveEnemie(Enemie enemie)
+    public void RemoveEnemie(Enemy enemy)
     {
-        Enemies.Remove(enemie);
+        Enemies.Remove(enemy);
         if(Enemies.Count == 0)
         {
             SpawnWave();
         }
+        enemy.DeathHappened -= HealPlayer;
     }
 
     public void GameOver()
     {
         Lose.SetActive(true);
+    }
+
+    private void HealPlayer()
+    {
+        Player.CurrentHp += Player.MaxHp * 0.1f;
     }
 
     private void SpawnWave()
@@ -52,14 +60,15 @@ public class SceneManager : MonoBehaviour
             return;
         }
 
-        var wave = Config.Waves[currWave];
-        foreach (var character in wave.Characters)
+        Wave wave = Config.Waves[currWave];
+        foreach (GameObject character in wave.Characters)
         {
             Vector3 pos = new Vector3(Random.Range(-10, 10), 0, Random.Range(-10, 10));
-            Instantiate(character, pos, Quaternion.identity);
+            Instantiate(character, pos, Quaternion.identity).TryGetComponent(out AgentMoveToPlayer goblinMove);
+            goblinMove.Construct(Player.transform);
         }
         currWave++;
-
+        OnWaveChanged?.Invoke(currWave);
     }
 
     public void Reset()
