@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    //Test
     public float Hp;
     public float Damage;
     public float AtackSpeed;
